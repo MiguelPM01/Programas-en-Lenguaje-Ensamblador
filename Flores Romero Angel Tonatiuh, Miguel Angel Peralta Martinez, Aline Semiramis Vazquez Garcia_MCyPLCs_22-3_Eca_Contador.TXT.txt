@@ -1,0 +1,85 @@
+;*******************************************************************************************
+;     Practica 2:   Programa Contador 
+;     Nombre(s):    Angel Tonatiuh Flores Romero, Miguel Angel Peralta Martinez, Aline Semiramis Vázquez García 
+;     Grupo:	    EC09S
+;     Fecha:	    17 de Julio del 2022
+;*******************************************************************************************
+;	    Encabezado del Programa	    "Parte número 1"
+;*******************************************************************************************
+PROCESSOR   PIC16f873A
+INCLUDE	    <P16f873A.inc>
+__CONFIG _XT_OSC & _PWRTE_ON & _WDT_OFF & _BODEN_OFF & _CP_OFF & _WRT_OFF & _DEBUG_OFF & _CPD_OFF & _LVP_OFF; Se realiza la configuración del Mc.
+    ;*******************************************************************************
+;					    Descripción de la configuración
+;   -> BODEN:  Permiso de reset por caída de voltaje.
+;   -> CP:     Código de protección de la memoria de programa.
+;   -> WRT:    Permiso de escritura en la memoria Flash.
+;   -> PWRTE:  Permiso para el temporizador de conexión a la alimentación.
+;   -> WDT:    Permiso del timer del perro guardián.
+;   -> XT_OSC: Oscilador a cristal en el rango de 2MHz a 4MHz.
+;   -> DEBUG:  Modo de depuración del circuito.
+;   -> CPD:    Código de protección de la memoria EEPROM de datos.
+;   -> LVP:    Permiso para programación en bajo voltaje.
+;*************************************************************************************
+;		BLOQUE DE VARIABLES	"Parte número 2"
+;*************************************************************************************
+    ; Paso 1
+        CBLOCK 0X20
+            Val_a_conv
+            Val_conv
+            UNIDADES
+            DECENAS
+            CENTENAS
+        ENDC
+;***************************************************************************************
+;						PROGRAMA PRINCIPAL    "Parte número 3"
+;***************************************************************************************
+            ORG 0
+                                BSF		STATUS, RP0	    ;<STATUS, RP0>=1, cambia d ebanco cero a 1 de la ram
+                                MOVLW	0X06		    ;0X06 -- W
+                                MOVWF	ADCON1		    ;(w) -- ADCON1
+                                BSF		TRISA,4		    ;<TRISA,4>=1
+                                CLRF	TRISB		    ;(TRISB) =0
+                                MOVLW	B'11111000'	    ;11111000b --W
+                                MOVWF	OPTION_REG	    ;(w) -- OPTION_REG
+                                BCF		STATUS, RP0	    ;<STATUS, RP0>=0
+                                CLRF	PORTB		    ;(PORTB) =0
+                    Nuevo_ciclo CLRF	TMR0		    ; TMR0=0
+                    Sig_valor   MOVF	TMR0, W		    ; TMR0 -> W
+                                MOVWF	Val_a_conv	    ;(W) -> Val_a_conv
+                                CALL	Bin_a_BCD	    ;genera llamado a subrutina       
+                                MOVF	Val_conv, W	    ;(Val_conv) -- W
+                                MOVWF	PORTB		    ;(W) -> PORTB
+                                MOVLW	d'100'		    ;(w) -100D -- W
+                                SUBWF	TMR0, W		    ;(TMR0) ->W
+                                BTFSS	STATUS, Z	    ;<STATUS, Z>=1?
+                                GOTO	Sig_valor	    ; si no se cumple la condicio se redirige a Sig_valor
+                                GOTO	Nuevo_ciclo	    ; al cumplir la condicion brinca a Nuevo_ciclo   
+;************************************************************************************************************
+;				SUBRUTINA BIN a BCD		"Parte número 4"
+;************************************************************************************************************
+                    Bin_a_BCD   MOVF	Val_a_conv, W	    ;(Val_a_conv) --W
+                                MOVWF	UNIDADES	    ;(W) -- UNIDADES
+                                CLRF	DECENAS		    ;(DECENAS) =0
+                                CLRF	CENTENAS	    ;(CENTENAS) =0
+                    BCD_resta10 MOVLW	d'10'		    ;10d -- W
+                                SUBWF	UNIDADES, W	    ; UNIDADES-W -- W
+                                BTFSS	STATUS, C	    ;<STATUS, C>=1?
+                                GOTO	Codigo_BCD	    ; NO!, Brinca a Codigo_BCD
+                                GOTO	BCD_IncreDecenas    ; SI!,Brinca a BCD_IncreDecenas
+               BCD_IncreDecenas MOVWF	UNIDADES	    ; W -- INIDADES
+                                INCF	DECENAS, F	    ;(DECENAS+1 -- DECENAS
+                                MOVLW	d'10'		    ;10D ->W
+                                SUBWF	DECENAS, W	    ;(DECENAS)-W --W
+                                BTFSS	STATUS, C	    ;<STATUS, C>=1?
+                                GOTO	BCD_resta10	    ; No, Brinca a BCD_resta10
+                                GOTO	BCD_IncreCentenas   ; Sí, Brinca a BCD_IncreCentenas
+              BCD_IncreCentenas CLRF	DECENAS		    ; DECENAS -0
+                                INCF	CENTENAS, F	    ;(CENTENAS) + 1 -- CENTENAS
+                                GOTO	BCD_resta10	    ; Brinca a BCD_resta10
+
+                    Codigo_BCD SWAPF	 DECENAS, W	    ; Intercambio de nibbles
+                                IORWF	UNIDADES, W	    ;(UNIDADES) OR W -- UNIDADES
+                                MOVWF	Val_conv	    ;(W) -- Val_conv
+                                RETURN			    ; Regreso a la subrutina
+            END

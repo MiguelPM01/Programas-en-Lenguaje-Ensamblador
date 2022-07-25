@@ -1,0 +1,78 @@
+;**********************************************************************
+;     Practica 2:   Programa Segundero
+;     Nombre(s):    Angel Tponatiuh Flores Romero, Miguel Angel Peralta Martinez, Aline Semiramis Vázquez Garcia 
+;     Grupo:	    EC09S
+;     Fecha:	    11 de marzo del 2022
+;***********************************************************************
+;	    Encabezado del Programa	    "Parte número 1"
+;***********************************************************************
+PROCESSOR PIC16F873A    	;Se indica el tipo de dispositivo a utilizar
+INCLUDE <P16F873A.INC>	;Se hace llamado de la correspondiente librería
+__CONFIG  _XT_OSC & _WDT_OFF & _PWRTE_ON & _BODEN_OFF & _CP_OFF & _DEBUG_OFF & _CPD_OFF & _LVP_OFF & _WRT_OFF	;Se realiza la configuración del MC.
+;***************************************************************************************************
+;		    Descripción de la configuración
+;   -> BODEN:	Permiso de reset por caída de voltaje
+;   -> CP:	Código de protección de memoria del programa
+;   -> WRT:	Permiso de escritura en la memoria Flash
+;   -> PWRTE:	Permiso para el temporizador de conexión a la alimentación
+;   -> WDT:	Permiso del timer del perro guardián 
+;   -> XT_OSC:	Oscilador a cristal es el rango de 2Mhz a 4Mhz
+;   -> DEBUG:	Modo de operación del circuito
+;   -> CPD:	Código de protección de la memoria EPROM de datos 
+;   -> LVP:	Permio para programación en bajo voltaje
+;
+;
+;****************************************************************************************************
+;	    BLOQUE DE VARIABLES	    "Parte número 2"
+;****************************************************************************************************
+
+
+;Paso 1
+    Cblock 0x20
+	CONTA_1
+	CONTA_2
+    EndC
+;-----------------------------PROGRAMA-PRINCIPAL--------------------------------
+    ORG 0
+	    BSF		STATUS,RP0	; <STATUS,RP0> = 1
+	    MOVLW	B'11010100'	; 11010100 -> W
+	    MOVWF	OPTION_REG	; (W)-> OPTION_REG
+	    CLRF	                  TRISB		; (TRISB) = 0
+	    BCF		STATUS,RP0	; <STATUS,RP0> = 0
+	    
+	       CLRF	PORTB		             ; (PORTB) = 0
+    BUCLE		CLRF	CONTA_1		     ; (CONTA_1) = 0
+    DIGIT		MOVF	CONTA_1,W	     ; (CONTA_1) -> W
+			CALL	TABLA		     ; SALTO A SUBRUTINA TABLA
+			MOVWF	PORTB		     ; (W) -> PORTB
+			CALL	DELAY_1SEG	     ; SALTO A RUTINA DE TIEMPO 1 SEGUNDO
+			INCF	CONTA_1,F	     ; (CONTA_1) + 1 -> CONTA_1
+			MOVLW	D'10'		     ; 10 -> (W)
+			SUBWF	CONTA_1,W	     ; (CONTA_1) - W -> W, COMPARACION CON 10D
+			BTFSS	STATUS,Z	     ; <STATUS,Z> = 1?
+			GOTO	DIGIT		     ; NO
+			GOTO	BUCLE		     ; SI
+;------------------------SUBRUTINA-DELAY_1SEG-----------------------------------
+DELAY_1SEG		MOVLW	    D'125'		; 125D -> W
+	                MOVWF	    CONTA_2             ; (CONTA_2) -> W
+SIG_CICLO		BCF	    INTCON,TMR0IF	; <INTCON,TMR0IF> = 0
+			MOVLW	    D'06'		; 06D ->(W) "VALOR CALCULADO"
+	                MOVWF	    TMR0		; (W) -> TMR0
+ESPERA			BTFSS	    INTCON,TMR0IF	; <INTCON,TMR0IF> = 1?
+			GOTO	    ESPERA		; NO
+			DECFSZ	    CONTA_2,F	        ;SI, (CONTA_2) - 1 -> CONTA_2 Y (CONTA_2) = 0?
+			GOTO	    SIG_CICLO	        ; NO
+			RETURN	    			; SI, REGRESA AL PROGRAMA PRINCIPAL
+;-----------------------SUBRUTINA_TABLA-----------------------------------------
+TABLA	    ADDWF	PCL,F		; (PCL) + (W) -> PCL
+	    RETLW	0X3F		; 0X3F -> W + RETURN 0
+	    RETLW	0X06		; 1
+	    RETLW	0X5B		; 2
+	    RETLW	0X4F		; 3
+	    RETLW	0X66		; 4
+	    RETLW	0X6D		; 5
+	    RETLW	0X7D		; 6
+	    RETLW	0X07		; 7
+	    RETLW	0X7F		; 8
+	    RETLW	0X67		; 9
+    END

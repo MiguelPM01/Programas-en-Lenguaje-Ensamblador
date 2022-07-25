@@ -1,0 +1,67 @@
+;**********************************************************************
+;     Practica 2:   Programa Semaforo
+;     Nombre(s):    Miguel Angel Peralta Martínez , Aline Semiramis Vazquez García, Angel Tonatiuh Flores Romero
+;     Grupo:	    EC09S
+;     Fecha:	    19 de Junio del 2022
+;***********************************************************************
+;	    Encabezado del Programa	    "Parte número 1"
+;***********************************************************************
+PROCESSOR PIC16F873A    	;Se indica el tipo de dispositivo a utilizar
+INCLUDE <P16F873A.INC>	;Se hace llamado de la correspondiente librería
+__CONFIG  _XT_OSC & _WDT_OFF & _PWRTE_ON & _BODEN_OFF & _CP_OFF & _DEBUG_OFF & _CPD_OFF & _LVP_OFF & _WRT_OFF	;Se realiza la configuración del MC.
+;***************************************************************************************************
+;		    Descripción de la configuración
+;   -> BODEN:	Permiso de reset por caída de voltaje
+;   -> CP:	Código de protección de memoria del programa
+;   -> WRT:	Permiso de escritura en la memoria Flash
+;   -> PWRTE:	Permiso para el temporizador de conexión a la alimentación
+;   -> WDT:	Permiso del timer del perro guardián 
+;   -> XT_OSC:	Oscilador a cristal es el rango de 2Mhz a 4Mhz
+;   -> DEBUG:	Modo de operación del circuito
+;   -> CPD:	Código de protección de la memoria EPROM de datos 
+;   -> LVP:	Permio para programación en bajo voltaje
+;
+;
+;****************************************************************************************************
+;	    BLOQUE DE VARIABLES	    "Parte número 2"
+;****************************************************************************************************
+	CBLOCK 0X20
+          VECES
+	ENDC
+;***************************************PROGRAMA PRINCIPAL*********************************************
+ORG 0
+	BSF	STATUS,RP0			; <STATUS,RP0> = 1
+	CLRF	TRISB	                        ; 11010100 -> W
+	BCF	STATUS,RP0			; <STATUS,RP0> = 0
+	
+CICLO	MOVLW	D'3'				; (3D) -> W
+	MOVWF   VECES				; (W) -> VECES
+	
+	MOVLW   B'00000001'			; 0x01 -> W, CICLO DE CONTROL DE LUZ VERDE
+	MOVWF	PORTB				; (W) -> PORTB
+	CALL    Retardo_20s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	CALL    Retardo_20s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	CALL    Retardo_10s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	CALL    Retardo_2s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	CALL    Retardo_2s			; SALTO A SUBRTUINA EN LIBRERIA "RETARDO.INC"
+	
+BUCLE	BCF     PORTB,0
+	CALL	Retardo_500ms			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	BSF     PORTB,0				
+	CALL	Retardo_500ms			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	DECFSZ	VECES,F
+	GOTO    BUCLE
+	
+	MOVLW	B'00000010'                     ; 0x02 -> W, CICLO CONTROL LUZ AMARILLA
+	MOVWF	PORTB				
+	CALL	Retardo_2s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"    
+	CALL	Retardo_1s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	
+	MOVLW	B'00000100'			; 0x04 -> W, CICLO CONTROL LUZ ROJA
+	MOVWF	PORTB
+	CALL	Retardo_20s			; SALTO A SUBRUTINA EN LIBRERIA "RETARDO.INC"
+	
+	GOTO	CICLO
+	
+	INCLUDE  <RETARDOS.INC>					
+END	

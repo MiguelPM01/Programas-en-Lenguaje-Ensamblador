@@ -1,0 +1,125 @@
+
+;***********************************************************************************************************
+; Práctica 3: 	 Termostato
+; NOMBRE: 	Angel Tonatiuh Flores Romero, Miguel Angel Peralta Martinez, Aline Semiramis Vázquez García
+; GRUPO:  	EC09S
+; CARRERA: 	Ingeniería en Sistemas Digitales y Robótica
+; FECHA:  	23/07/2022
+;**************************************************************************************************************************************************************
+;                                  PARTE 1 "ENCABEZADO DEL PROGRAMA "
+;**************************************************************************************************************************************************************
+PROCESSOR   PIC16F873A           ; Siempre se debe indicar el dispositivo a utilizar
+INCLUDE	    <P16F873A.INC>       ; Llamado de la libreria del dispositivo
+__CONFIG _XT_OSC & _WDT_OFF & _PWRTE_ON & _BODEN_OFF & _CP_OFF & _DEBUG_OFF & _CPD_OFF & _LVP_OFF & _WRT_OFF ; Se realiza la configuracion de Microcontrolador
+;**************************************************************************************************************************************************************
+    ;                       Descripcion de la configuración
+    ; -> BODEN : Permiso de RESET por caida de Voltaje. 
+    ; -> CP    : Codigo de protección de la MEMORIA del programa. 
+    ; -> WRT   : Permiso de Escritura en la MEMORIA FLASH.
+    ; -> PWRTE : Permiso para el Temporizador de conexion a la aliemtación
+    ; -> WDT   : Permiso del TIMER del PERRO GUARDIAN
+    ; -> XT_OSC: Oscilador de cristal en el rango de 2MHz a 4MHz
+    ; -> DEBUG : Modo de depuracion de la Memria EEPROM de Datos
+    ; -> CPD   : Codigo de proteccion de la Memoria EEPROM de Datos 
+    ; -> LVP   : Permiso para programacion en bajo Voltaje
+    
+;************************************************************************************************************************************************************
+;                                          DECLARACIÓN DE VARIABLES    "PARTE 2 "
+;   
+;************************************************************************************************************************************************************
+;PASO 1          Declaración de Variables 
+         CBLOCK       0X20                                      ; Primer direccion de los PRG.
+
+         CONTA_2
+	 VAL_A_CONV
+	 VAL_CONV
+	 UNIDADES
+	 DECENAS
+	 CENTENAS
+    ENDC
+;***********************************************************************************************************************************************************
+;                                          PROGRAMA PRINCIPAL     " PARTE 3 "
+;***********************************************************************************************************************************************************
+         ORG 0								        ;ORIGEN DEL PROGRAMA PINCIPAL 
+		INICIO		BSF	STATUS,RP0				;<STATUS,RP0> BANCO 0 AL BANCO 1
+				MOVLW   B'11010100'				;00010100b -> W
+				MOVWF   OPTION_REG				;(W) -> OPTION_REG
+				MOVLW	B'00001111'				;00001111b -> W
+				MOVWF	ADCON1					;(W) -> ADCON1
+				MOVLW	B'00111111'				;00111111b -> W
+				MOVWF	TRISA					;(W) -> TRISA
+				CLRF	TRISB					;PORTB COMO SALIDA
+				BCF	TRISC,0				        ;PORTC,RC0 COMO SALIDA 
+				BCF	STATUS,RP0				;<STATUS,RP0> BANCO 1 AL BANCO 0
+				CLRF    PORTB					;(PORTB) = 0 
+				MOVLW	B'01000001'				;01000001b -> W
+				MOVWF	ADCON0					;(W) -> ADCON0
+			
+		APAGADO		BCF	PORTC,0					;<PORTC,0> = 0
+		ENCENDIDO	CALL	DELAY_1SEG				;LLAMA A DELAY_1SEG
+		    
+				BSF	ADCON0,GO				;<ADCON0,GO> = 1
+		ESPERA		BTFSC	ADCON0,GO				;<ADCON0,GO> = 0?
+				GOTO	ESPERA					;VE A ESPERA
+				MOVF	ADRESH,W				;ADRESH -> W
+				MOVWF	VAL_A_CONV				;(W) -> VAL_A_CONV
+				CALL	Bin_a_BCD				;LLAMA A Bin_a_BCD
+				MOVF	VAL_CONV,W				;(VAL_A_CONV) -> W
+				MOVWF	PORTB					;(W) -> PORTB
+				MOVLW   0X40					;(0X40) -> W
+				SUBWF   VAL_CONV,W				;(VAL_A_CONV)-(W) -> W
+				BTFSS   STATUS,C				;<STATUS,C>=0?
+				GOTO	APAGADO					;NO! VE A APAGADO
+				BSF	PORTC,0					;<PORTC,0> = 1
+				GOTO	ENCENDIDO				;VE A ENCENDIDO
+				
+;***********************************************************************************************************************************************************
+;                                         LLAMADO A SUBRUTINA       " PARTE 4  SUBRUTINA "
+;***********************************************************************************************************************************************************
+
+		DELAY_1SEG	MOVLW   d'125'					;125d -> W
+				MOVWF   CONTA_2					;(W) -> CONTA_2
+		NO_ES_IGUAL	BCF	INTCON,TMR0IF			;<INTCON,TMR0IF>=0
+				MOVLW   d'6'					;6d -> W
+				MOVWF   TMR0					;(W) -> TMR0 TMR0 INICIALIZADO CON 6d
+		NO		BTFSS   INTCON,TMR0IF				;<INTCON,TMR0IF>=1?
+				GOTO    NO					;<INTCON,TMR0IF> NO ES 1, VE A NO
+				DECFSZ  CONTA_2,1				;<STATUS,Z>=1?
+				GOTO    NO_ES_IGUAL				;NO CUMPLE, VE A NO SON IGUALES
+				RETURN						;SI CUMPLE, REGRESA DE LA SUBRUTINA
+			   
+		Bin_a_BCD	MOVF    VAL_A_CONV,W				;(VAL_A_CONV)-> W
+				MOVWF   UNIDADES				;(W) -> UNIDADES
+				CLRF    DECENAS					;(DECENAS) = 0
+				CLRF    CENTENAS				;(CENTENAS) = 0
+			    
+		BCD_resta10	MOVLW   D'10'					;10d -> W
+				SUBWF   UNIDADES,W				;(UNIDADES)-(W) -> W
+				
+				BTFSS   STATUS,C				;<STATUS,C> = 1?
+				GOTO    Codigo_BCD				;NO ES MAYOR O IGUAL A 10, VE A Codigo_BCD
+				GOTO    BCD_IncreDecenas			;SI ES MAYOR O IGUAL A 10, VE A BCD_Incre_Decenas
+			    
+		Codigo_BCD	SWAPF   DECENAS,W				;INTERCAMBIAR NIBBLES DE DECENAS -> W
+				IORWF   UNIDADES,W				;(UNIDADES) OR (W) -> W
+				MOVWF   VAL_CONV				;(W) -> VAL_CONV
+				RETURN						;REGRESA DE SUBRUTINA
+			    
+	BCD_IncreDecenas	MOVWF   UNIDADES				;(W) -> UNIDADES
+				
+				INCF   DECENAS,F				;(W) + (DECENAS) -> DECENAS
+				MOVLW   D'10'					;10d -> W
+				SUBWF   DECENAS,W				;(DECENAS)-(W) -> W
+				
+				BTFSS   STATUS,C				;<STATUS,C> = 1?
+				GOTO    BCD_resta10				;NO ES MAYOR O IGUAL A 10, VE A BCD_resta10
+				
+			    
+	BCD_IncreCentenas	CLRF    DECENAS					;(DECENAS)=0	
+				
+				INCF   CENTENAS,F				;(W) + (CENTENAS) -> CENTENAS
+				GOTO    BCD_resta10				;VE A BCD_resta10
+;**********************************************************************************************************************************************
+;						FIN DEL PROGRAMA									                                        *
+;**********************************************************************************************************************************************	
+				END
