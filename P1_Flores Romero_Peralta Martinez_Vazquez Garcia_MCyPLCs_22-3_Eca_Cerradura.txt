@@ -1,0 +1,55 @@
+;Práctica 1 Cerradura
+;Nombre(s): Miguel Angel Peralta Martinez - Aline Semiramis Vázquez García -Angel Tonatiuh Flores Romero
+;Grupo: EC09S
+;Fecha: 	
+;*************************************************************************************************************
+;                                      Encabezado del programa                                               *
+;*************************************************************************************************************
+processor PIC16F873A
+include <p16f873a.inc>
+__CONFIG  _XT_OSC & _WDT_OFF & _PWRTE_ON & _BODEN_OFF & _CP_OFF & _DEBUG_OFF & _CPD_OFF & _LVP_OFF & _WRT_OFF 
+;************************************************************************************************************
+;                                      Descripcción del programa                                            *                       	
+;************************************************************************************************************
+; ->BODEN:	Permiso de reset por caída de tensión.
+; ->CP:		Código de protección de la Memoeria del Programa.
+; ->WRT:	Permiso de escritura en la Memoria Flash.
+; ->XT_OSC:	Oscilador a cristal en el rango de 2MHZ a 4 MHz.
+; ->DEBUG:	Modo depurador en circuito.
+; ->CPD:	Código de protección de la memoria EEPROM de datos.
+; ->LVP:	Permiso para programación en bajo voltaje.
+;************************************************************************************************************
+;				    Declaración de Variable                                                 *
+;************************************************************************************************************	
+;PASO 1
+	CBLOCK	0X20
+			    Clave
+	ENDC
+;************************************************************************************************************
+;				    Programa Principal                                                      *
+;************************************************************************************************************
+	ORG 0
+;PASO 2
+	    INICIO	BSF   STATUS,RP0	    ;<STATUS,RP0> = 1 => CAMBIA DEL B0 AL B1 DE LA MEMORIA RAM.
+			BCF   TRISB,0	    ;<TRISB,0> = 0  RB0 QUEDA COMO SALIDA.
+;PASO 3
+			MOVLW  b'11111111'  ;1111 1111b -> W
+			MOVWF  TRISC	    ; (W) -> TRISC, TODO EL PORTC COMO ENTRADA.
+			BCF    STATUS,RP0   ;<STATUS,RP0> = 0 => CAMBIA DEL B1 AL B0 DE LA MEMORIA RAM.
+;PASO 4
+			MOVLW   b'10101010' ;1010 1010b -> W
+			MOVWF	Clave	    ;(W) -> Clave -> INICIAMOS LA VARIABLE.
+;PASO 5
+	    Ciclo	BCF     PORTB,0	    ;<PORTB,0> = 0 SE LIMPIA RB0.
+;PASO 6
+	    Otro_digito	MOVF    PORTC,W	    ;(PORTC) -> W lECTURA DE PORTC.
+;PASO 7
+			SUBWF   Clave,W	    ; (Clave) -(w) -> w
+			BTFSS	STATUS,Z    ;<STATUS,> = 1?
+			GOTO    Otro_digito ;NO! SALTA A LA ETIQUETA "Otro_digito".
+;PASO 8
+			BSF	PORTB,0	    ;SÍ <PORTB,0> = 1
+			GOTO	Ciclo	    ;SALTA A LA ETIQUETA CICLO.
+END			
+			    
+;************************************************************************************************************

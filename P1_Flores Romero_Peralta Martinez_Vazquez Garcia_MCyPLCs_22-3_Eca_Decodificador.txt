@@ -1,0 +1,74 @@
+;Práctica 1 Ejercicio 2 Decodificador
+;Nombre(s): Miguel Angel Peralta Martinez - Aline Semiramis Vázquez García 
+;Grupo: EC09S
+;Fecha: 	
+;*************************************************************************************************************
+;                                      Encabezado del programa                                               *
+;*************************************************************************************************************
+processor PIC16F873A
+include <p16f873a.inc>
+__CONFIG  _XT_OSC & _WDT_OFF & _PWRTE_ON & _BODEN_OFF & _CP_OFF & _DEBUG_OFF & _CPD_OFF & _LVP_OFF & _WRT_OFF 
+;************************************************************************************************************
+;                                      Descripcción del programa                                            *                       	
+;************************************************************************************************************
+; ->BODEN:	Permiso de reset por caída de tensión.
+; ->CP:		Código de protección de la Memoeria del Programa.
+; ->WRT:	Permiso de escritura en la Memoria Flash.
+; ->XT_OSC:	Oscilador a cristal en el rango de 2MHZ a 4 MHz.
+; ->DEBUG:	Modo depurador en circuito.
+; ->CPD:	Código de protección de la memoria EEPROM de datos.
+; ->LVP:	Permiso para programación en bajo voltaje.
+;************************************************************************************************************
+;				    Declaración de Variable                                                 *
+;************************************************************************************************************
+	CBLOCK 0X20							    ;PRIMERA DIRECIÓN DE LOS RPG.
+									    ;CLAVE = 0X20
+ENDC									    
+;************************************************************************************************************
+;				    Programa Principal                                                      *
+;************************************************************************************************************
+	ORG 0
+;PASO 1 
+		INICIO		BSF     STATUS,RP0	    ;<STATUS,RP0> = 1 B0 VA AL B1.
+				CLRF	TRISB		    ;(TRISB) = 0 => PORTB COMO SALIDA.
+;PASO 2
+				MOVLW	B'11111111'	    ;1111 1111b -> W
+				MOVWF	TRISC		    ;(W) -> TRISC => PORTB COMO ENTRADA.
+				BCF	STATUS,RP0	    ;<STATUS,RP0> = 9 B1 VA AL B0.
+;PASO 3
+				CLRF	PORTB		    ;(PORTB) = 0 SE LIMPIA PORTB.
+;PASO 4
+		Otro_digito	MOVF	PORTC,W		    ;(PORTC) -> W -> LECTURA DEL PORTC.
+;PASO 5
+				ANDLW	0X0F		    ;(w) AND 0X0F -> W MÁSCARA.
+;PASO 6
+				CALL	TABLA		    ;LLAMAMOS A LA SUBRUTINA TABLA.
+;PASO 7
+				MOVWF	PORTB		    ;(w) -> PORTB => ESCRITURA DEL PORTB
+				GOTO Otro_digito	    ;SALTA A LA ETIQUETA Otro_digito
+;**************************************************************************************************************
+;	SUBRUTINAS			"PARTE 4 DEL PROGRAMA                                                 *
+;**************************************************************************************************************
+;PASO 8
+		TABLA		ADDWF	PCL,F		    ;(w)+(PCL) -> PCL
+		
+				RETLW 0X3F		    ;3Fh->w, Y RETURN, DÍGITO = 0.
+				RETLW 0X06		    ;06h->w, Y RETURN, DÍGITO = 1.
+				RETLW 0X5B		    ;5Bh->w, Y RETURN, DÍGITO = 2.
+				RETLW 0X4F		    ;4Fh->w, Y RETURN, DÍGITO = 3.
+				RETLW 0X66		    ;66h->w, Y RETURN, DÍGITO = 4.
+				RETLW 0X6D		    ;6Dh->w, Y RETURN, DÍGITO = 5.
+				RETLW 0X7D		    ;7Dh->w, Y RETURN, DÍGITO = 6.
+				RETLW 0X07		    ;07h->w, Y RETURN, DÍGITO = 7.
+				RETLW 0X7F		    ;7Fh->w, Y RETURN, DÍGITO = 8.
+				RETLW 0X67		    ;67h->w, Y RETURN, DÍGITO = 9.
+				RETLW 0X77		    ;77h->w, Y RETURN, DÍGITO = A.
+				RETLW 0X7C		    ;7Ch->w, Y RETURN, DÍGITO = B.
+				RETLW 0X39		    ;39h->w, Y RETURN, DÍGITO = C.
+				RETLW 0X5E		    ;5Eh->w, Y RETURN, DÍGITO = D.
+				RETLW 0X79		    ;79h->w, Y RETURN, DÍGITO = E.
+				RETLW 0X71		    ;71h->w, Y RETURN, DÍGITO = F.
+;***************************************************************************************************************
+;	                                   FIN DEL PROGRAMA                                                    *
+;***************************************************************************************************************
+	END	
